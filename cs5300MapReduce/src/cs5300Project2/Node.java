@@ -1,4 +1,4 @@
-package cs5300Project2.blocked;
+package cs5300Project2;
 
 import java.util.ArrayList;
 import java.util.Iterator;

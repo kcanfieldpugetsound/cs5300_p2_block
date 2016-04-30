@@ -1,4 +1,4 @@
-package cs5300Project2.blocked;
+package cs5300Project2;
 
 public class Pair<L, R> {
 	

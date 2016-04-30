@@ -1,4 +1,4 @@
-package cs5300Project2.blocked;
+package cs5300Project2;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
