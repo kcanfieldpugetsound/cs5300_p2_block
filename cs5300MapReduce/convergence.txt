@@ -1,0 +1,8 @@
+Number of edges is 5
+Convergence on run 1: 3.7292499999999995
+Convergence on run 2: 0.37609
+Convergence on run 3: 0.14686
+Convergence on run 4: 0.03798
+Convergence on run 5: 0.0
+Convergence on run 6: 0.0
+Convergence on run 7: 0.0
