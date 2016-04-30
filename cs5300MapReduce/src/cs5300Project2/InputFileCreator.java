@@ -34,7 +34,7 @@ public class InputFileCreator {
 			
 			String line;
 			while (blockScanner.hasNextLine()) {
-				line = blockScanner.nextLine();
+				line = blockScanner.nextLine().trim();
 				blockSizes.add(new Integer(line));
 			}
 			
@@ -46,7 +46,7 @@ public class InputFileCreator {
 	}
 	
 	public boolean createInputFile (String outputFilename) {
-		
+		System.out.println("creating input file");
 		try {
 			
 		Graph graph = new Graph();
@@ -57,13 +57,13 @@ public class InputFileCreator {
 		//for each edge, add it to the graph
 		String line;
 		while (edgeScanner.hasNextLine()) {
-			line = edgeScanner.nextLine();
+			line = edgeScanner.nextLine().trim();
 			
 			String[] split = line.split("\\s+");
 			
 			//ignore a large subset of the edges, in accordance
 			//with project specifications
-			int filter = Integer.parseInt(split[3]);
+			double filter = Double.parseDouble(split[2]);
 			if (filter < lowerBound || filter > upperBound) {
 				continue;
 			}		
@@ -91,10 +91,13 @@ public class InputFileCreator {
 		edgeScanner.close();
 		writer.close();
 		
+		System.out.println("created input file");
+		
 		return true;
 		
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.out.println("failed to create input file");
 			return false;
 		}
 	}

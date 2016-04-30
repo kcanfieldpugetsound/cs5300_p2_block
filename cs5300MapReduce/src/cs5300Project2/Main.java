@@ -22,6 +22,7 @@ public class Main {
 		Configuration config = new Configuration();
 		Path outputDir = new Path(outputDirectory);
 		outputDir.getFileSystem(config).delete(outputDir, true);
+		outputDir.getFileSystem(config).mkdirs(outputDir);
 		
 		Path input = new Path(outputDir, "input.txt");
 		
@@ -34,11 +35,13 @@ public class Main {
 		
 		//run the actual mapreduce job
 		for (int i = 0; i < NUM_RUNS; i++) {
+			System.out.println("running pagerank iteration");
 			Path output = new Path(outputDir, String.valueOf(i));
 			
 			runPageRank(input, output);
 			
 			input = output;
+			System.out.println("completed pagerank iteration");
 		}
 	}
 	
