@@ -12,7 +12,6 @@ public class BlockedMapper extends Mapper<Text, Text, LongWritable, Text> {
 	private Text outValue = new Text();
 
 	public void map(Text ikey, Text ivalue, Context context) throws IOException, InterruptedException {
-		
 		//ikey   -> nodeid
 		//ivalue -> node information, described below
 		
@@ -25,17 +24,22 @@ public class BlockedMapper extends Mapper<Text, Text, LongWritable, Text> {
 		for (Pair<Integer,Integer> p : n.getAdjacencyList()) {
 			//p consists of (blockID, nodeID)
 			
+			Integer outgoingBlockId = p.left();
+			Integer outgoingNodeId = p.right();
+			
 			//if this is an external connection
-			if (!p.left().equals(n.blockId())) {
+			if (!outgoingBlockId.equals(n.blockId())) {
 				Double outgoingPR = (n.getCurrPageRank() / n.getAdjacencyList().size());
-				String output = "B" + p.right() + "," + outgoingPR;
+				String output = "B" + outgoingNodeId + "," + outgoingPR;
+				outKey.set(outgoingBlockId);
 				outValue.set(output);
 				context.write(outKey, outValue);
 			} 
 			//otherwise we don't need to emit a boundary condition
 		}
 		
-		//write basic node information
+		//write node information		
+		outKey.set(n.blockId());
 		outValue.set("N" + n.toString());
 		context.write(outKey, outValue);
 		

@@ -27,10 +27,6 @@ public class Node {
 		adjacencyList = new ArrayList<Pair<Integer,Integer>>();
 	}
 	
-	public Node(int nid, double ppr, double cpr) {
-		this(-1, nid, ppr, cpr);
-	}
-	
 	//blockId,nodeId,toBlockId1:toNodeId1;toBlockId2:toNodeId2,prevPageRank,currPageRank
 	public Node (String s) {
 		String[] split = s.split(",");
@@ -39,16 +35,18 @@ public class Node {
 		nodeId = Integer.parseInt(split[1]);
 		
 		adjacencyList = new ArrayList<Pair<Integer, Integer>>();
-		
-		String[] edges = split[2].split(";");
-		for (int i = 0; i < edges.length; i++) {
-			String[] parts = edges[i].split(":");
-			int blockId = Integer.parseInt(parts[0]);
-			int nodeId = Integer.parseInt(parts[1]);
-			Pair<Integer, Integer> p = 
-				new Pair<Integer, Integer>(blockId, nodeId);
-			
-			adjacencyList.add(p);
+		//if we have outgoing edges...
+		if (split[2].length() != 0) {
+			String[] edges = split[2].split(";");
+			for (int i = 0; i < edges.length; i++) {
+				String[] parts = edges[i].split(":");
+				int blockId = Integer.parseInt(parts[0]);
+				int nodeId = Integer.parseInt(parts[1]);
+				Pair<Integer, Integer> p = 
+					new Pair<Integer, Integer>(blockId, nodeId);
+				
+				adjacencyList.add(p);
+			}
 		}
 		
 		prevPageRank = Double.parseDouble(split[3]);

@@ -12,6 +12,10 @@ public class Graph implements Iterable<Node>{
 		nodes = new HashMap<Integer, Node>();
 	}
 	
+	public Graph (int size) {
+		nodes = new HashMap<Integer, Node>(size);
+	}
+	
 	public void addEdge (int fromNId, int fromBId, int toNId, int toBId) {
 		Node n = nodes.get(fromNId);
 		if (n == null) {
@@ -20,8 +24,12 @@ public class Graph implements Iterable<Node>{
 			//currPageRank is initialized later in InputFileCreator
 			n = new Node (fromBId, fromNId, 0, 0);
 		}
+		//make sure the destination node exists too!
+		if (nodes.get(toNId) == null) {
+			nodes.put(toNId, new Node(toBId, toNId, 0, 0));
+		}
 		
-		n.addAdjacentNode(new Pair<Integer,Integer>(toNId, toBId));
+		n.addAdjacentNode(new Pair<Integer,Integer>(toBId, toNId));
 		
 		nodes.put(n.nodeId(), n);
 	}

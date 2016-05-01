@@ -1,8 +1,8 @@
 package cs5300Project2;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -25,7 +25,8 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 		 * Boundary conditions, consisting of: <br>
 		 * &lt;nodeId, pageRank&gt;
 		 */
-		Map<Integer,Double> boundaryConditions = new HashMap<Integer,Double>();
+		//Map<Integer,Double> boundaryConditions = new HashMap<Integer,Double>();
+		List<Pair<Integer,Double>> boundaryConditions = new ArrayList<Pair<Integer,Double>>();
 		
 		for (Text t : values) {
 			String text = t.toString();
@@ -37,12 +38,12 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 				Integer nodeId = new Integer(split[0]);
 				Double pageRank = new Double(split[1]);
 				
-				boundaryConditions.put(nodeId, pageRank);
+				boundaryConditions.add(new Pair<Integer,Double>(nodeId, pageRank));
 			} else if (type == 'N') {
 				graph.addNode(new Node(contents));
 			} else {
 				throw new IllegalArgumentException
-					("Illegal reducer input value: starts with '" + t.charAt(0)
+					("Illegal reducer input value: starts with '" + text.charAt(0)
 					+ "', must start with 'B' or 'N'");
 			}
 		}
@@ -57,22 +58,33 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 		
 		//do local iteration
 		for (Node n : graph) {
-			double outgoing = n.getPrevPageRank() / n.getAdjacencyList().size();
+			double outgoingPR = n.getPrevPageRank() / n.getAdjacencyList().size();
 			for (Pair<Integer,Integer> p : n.getAdjacencyList()) {
 				//p consists of <blockId, nodeId> || outgoing edges
+				Integer outgoingBlockId = p.left();
+				Integer outgoingNodeId  = p.right();
 				
 				//ignore non-local edges! WOOO!
-				if (!p.left().equals(n.blockId())) continue;
-				double oldPR = graph.getNode(p.right()).getCurrPageRank();
-				double newPR = oldPR + outgoing;
-				graph.getNode(p.right()).setCurrPageRank(newPR);
+				if (!outgoingBlockId.equals(n.blockId())) continue;
+				if (graph.getNode(outgoingNodeId) == null) {
+					System.out.println("------> tried to get node '" + outgoingNodeId + "' but only have nodes '" + graph.getNodes().keySet() + "'");
+				}
+				//deal with local edges only! WOOO!
+				double oldPR = graph.getNode(outgoingNodeId).getCurrPageRank();
+				double newPR = oldPR + outgoingPR;
+				graph.getNode(outgoingNodeId).setCurrPageRank(newPR);
 			}
 		}
 		
 		//account for boundary conditions
-		for (Integer nodeId : boundaryConditions.keySet()) {
+		for (Pair<Integer,Double> p : boundaryConditions) {
+			//p contains <destination nodeId, pageRank>
+			Integer nodeId = p.left();
+			if (graph.getNode(nodeId) == null) {
+				System.out.println("------> in block '" + _key.toString() + "' tried to get node id '" + nodeId + "' for boundary condition but we only have '" + graph.getNodes().keySet() + "'");
+			}
 			double oldPR = graph.getNode(nodeId).getCurrPageRank();
-			double newPR = oldPR + boundaryConditions.get(nodeId);
+			double newPR = oldPR + p.right();
 			graph.getNode(nodeId).setCurrPageRank(newPR);
 		}
 		
