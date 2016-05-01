@@ -27,8 +27,9 @@ public class BlockedMapper extends Mapper<Text, Text, LongWritable, Text> {
 			Integer outgoingBlockId = p.left();
 			Integer outgoingNodeId = p.right();
 			
-			//if this is an external connection
+			//if this is a connection external to this block
 			if (!outgoingBlockId.equals(n.blockId())) {
+				//output boundary conditions
 				Double outgoingPR = (n.getCurrPageRank() / n.getAdjacencyList().size());
 				String output = "B" + outgoingNodeId + "," + outgoingPR;
 				outKey.set(outgoingBlockId);
