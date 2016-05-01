@@ -15,9 +15,21 @@ public class Main {
 		+ "\nto preprocess data:"
 			+ "\n\tpre edge_filepath block_filepath output_directory"
 		+ "\nto run program:"
-			+ "\n\trun output_directory num_runs"
+			+ "\n\trun input_filename output_directory num_runs"
 		+ "\nfor help:"
 			+ "\n\thelp";
+	
+	private static final String help = "HELP FOR: Blocked PageRank | MapReduce\n"
+		+ "\npre usage: pre edge_filepath block_filepath output_directory "
+			+ "\n\tproduces the initial input to the MapReduce algorithm "
+			+ "\n\tusing the given edge file and block file, and outputs "
+			+ "\n\tthe result to output_directory/input.txt"
+		+ "\nrun usage: run input_filename output_directory num_runs "
+			+ "\n\truns MapReduce num_runs times using input_filename for "
+			+ "\n\tthe input for the first iteration, and stores intermediate "
+			+ "\n\tdata in output_directory; note that the input file must not "
+			+ "\n\tbe in output_directory, as output_directory is cleared "
+			+ "\n\tbefore each run";
 	
 	public static void main (String... elephants) {
 		try {
@@ -26,13 +38,17 @@ public class Main {
 				pre(elephants[1], elephants[2], elephants[3]);
 				break;
 			case "run":
-				run(elephants[1], elephants[2]);
+				run(elephants[1], elephants[2], elephants[3]);
+				break;
+			case "help":
+				System.out.println(help);
 				break;
 			default:
+				System.out.println("Invalid arguments.");
 				System.out.println(usage);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("Invalid arguments or internal error.");
 			System.out.println(usage);
 		}
 	}
@@ -44,14 +60,14 @@ public class Main {
 		return;
 	}
 	
-	public static void run (String outputDirectory, String numRuns) throws Exception {
+	public static void run (String inputFilename, String outputDirectory, String numRuns) throws Exception {
 		//perform some Hadoop configuration
-//		Configuration config = new Configuration();
+		Configuration config = new Configuration();
 		Path outputDir = new Path(outputDirectory);
-//		outputDir.getFileSystem(config).delete(outputDir, true);
-//		outputDir.getFileSystem(config).mkdirs(outputDir);
+		outputDir.getFileSystem(config).delete(outputDir, true);
+		outputDir.getFileSystem(config).mkdirs(outputDir);
 		
-		Path input = new Path(outputDir, "input.txt");
+		Path input = new Path(inputFilename);
 		
 		int NUM_RUNS = Integer.parseInt(numRuns);
 		

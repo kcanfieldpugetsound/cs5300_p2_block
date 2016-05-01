@@ -11,6 +11,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 	
 	private static final double ALPHA = 0.85;
+	private static final int NUM_LOCAL_ITERATIONS = 5;
 	
 	Text outKey = new Text();
 	Text outValue = new Text();
@@ -49,50 +50,45 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 		}
 		
 		//we've constructed the block, now let's do some iteration! WOOOOOOOO
-		
-		//get ready to compute next page rank iteration
-		for (Node n : graph) {
-			n.setPrevPageRank(n.getCurrPageRank());
-			n.setCurrPageRank(0);
-		}
-		
-		//do local iteration
-		for (Node n : graph) {
-			double outgoingPR = n.getPrevPageRank() / n.getAdjacencyList().size();
-			for (Pair<Integer,Integer> p : n.getAdjacencyList()) {
-				//p consists of <blockId, nodeId> || outgoing edges
-				Integer outgoingBlockId = p.left();
-				Integer outgoingNodeId  = p.right();
-				
-				//ignore non-local edges! WOOO!
-				if (!outgoingBlockId.equals(n.blockId())) continue;
-				if (graph.getNode(outgoingNodeId) == null) {
-					System.out.println("------> tried to get node '" + outgoingNodeId + "' but only have nodes '" + graph.getNodes().keySet() + "'");
+		for (int i = 0; i < NUM_LOCAL_ITERATIONS; i++) {
+			//get ready to compute next page rank iteration
+			for (Node n : graph) {
+				n.setPrevPageRank(n.getCurrPageRank());
+				n.setCurrPageRank(0);
+			}
+			
+			//do local iteration
+			for (Node n : graph) {
+				double outgoingPR = n.getPrevPageRank() / n.getAdjacencyList().size();
+				for (Pair<Integer,Integer> p : n.getAdjacencyList()) {
+					//p consists of <blockId, nodeId> || outgoing edges
+					Integer outgoingBlockId = p.left();
+					Integer outgoingNodeId  = p.right();
+					
+					//ignore non-local edges! WOOO!
+					if (!outgoingBlockId.equals(n.blockId())) continue;
+					//deal with local edges only! WOOO!
+					double oldPR = graph.getNode(outgoingNodeId).getCurrPageRank();
+					double newPR = oldPR + outgoingPR;
+					graph.getNode(outgoingNodeId).setCurrPageRank(newPR);
 				}
-				//deal with local edges only! WOOO!
-				double oldPR = graph.getNode(outgoingNodeId).getCurrPageRank();
-				double newPR = oldPR + outgoingPR;
-				graph.getNode(outgoingNodeId).setCurrPageRank(newPR);
 			}
-		}
-		
-		//account for boundary conditions
-		for (Pair<Integer,Double> p : boundaryConditions) {
-			//p contains <destination nodeId, pageRank>
-			Integer nodeId = p.left();
-			if (graph.getNode(nodeId) == null) {
-				System.out.println("------> in block '" + _key.toString() + "' tried to get node id '" + nodeId + "' for boundary condition but we only have '" + graph.getNodes().keySet() + "'");
+			
+			//account for boundary conditions
+			for (Pair<Integer,Double> p : boundaryConditions) {
+				//p contains <destination nodeId, pageRank>
+				Integer nodeId = p.left();
+				double oldPR = graph.getNode(nodeId).getCurrPageRank();
+				double newPR = oldPR + p.right();
+				graph.getNode(nodeId).setCurrPageRank(newPR);
 			}
-			double oldPR = graph.getNode(nodeId).getCurrPageRank();
-			double newPR = oldPR + p.right();
-			graph.getNode(nodeId).setCurrPageRank(newPR);
-		}
-		
-		//apply damping factor
-		for (Node n : graph) {
-			double oldPR = n.getCurrPageRank();
-			double newPR = (ALPHA * oldPR) + ((1 - ALPHA) / graph.size());
-			n.setCurrPageRank(newPR);
+			
+			//apply damping factor
+			for (Node n : graph) {
+				double oldPR = n.getCurrPageRank();
+				double newPR = (ALPHA * oldPR) + ((1 - ALPHA) / graph.size());
+				n.setCurrPageRank(newPR);
+			}
 		}
 		
 		//emit the results LOL
