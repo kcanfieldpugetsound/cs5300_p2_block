@@ -129,12 +129,12 @@ public class Main {
 			System.out.println("`run' must be called before using step; "
 				+ "`usage' or `help' for more information");
 		} else {
-			int iterationNumber = i + 1;
+			int iterationNumber = i;
 			Path outputFile;
 			for (int j = 0; j < NUM_STEPS; j++) {
+				iterationNumber++;
 				outputFile = new Path(outputDirectory + "/" + iterationNumber);
 				runPageRank(inputFile, outputFile);
-				iterationNumber++;
 				inputFile = outputFile;
 			}
 			System.out.println("ran `step' " + NUM_STEPS + " time(s) with input " + i 
