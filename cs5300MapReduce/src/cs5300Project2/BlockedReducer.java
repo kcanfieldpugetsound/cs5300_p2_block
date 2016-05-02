@@ -2,7 +2,9 @@ package cs5300Project2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -13,6 +15,9 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 	private static final double ALPHA = 0.85;
 	private static final int NUM_LOCAL_ITERATIONS = 5;
 	
+	//blockID -> <lowestNumberedNode, highestNumberedNode>
+	public static Map<Integer, Pair<Node,Node>> report;
+	
 	Text outKey = new Text();
 	Text outValue = new Text();
 	
@@ -21,6 +26,10 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 	public static enum Counter {
 		CONVERGENCE,
 		NUM_NODES
+	}
+	
+	public void setup (Context context) {
+		report = new HashMap<Integer, Pair<Node,Node>>();
 	}
 	
 	public void reduce(LongWritable _key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
@@ -98,17 +107,40 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 			}
 		}
 		
-		//emit the results and calculate counter woot
+		//emit the results, set the report, and calculate counter woot
+		int lowest_node = Integer.MAX_VALUE;
+		int second_lowest_node = Integer.MAX_VALUE;
+		int block_id = -1;
 		for (Node n : graph) {
+			block_id = n.blockId();
+			//keep track of the number of nodes in the entire graph
 			context.getCounter(Counter.NUM_NODES).increment(1);
 			
-			long change = SCALING_FACTOR * (long)
-				(Math.abs(n.getCurrPageRank() - n.getPrevPageRank()));
+			//keep track of total residual error for the entire graph
+			long change = (long) (SCALING_FACTOR *
+				(Math.abs((n.getCurrPageRank() - n.getPrevPageRank()) / 
+					n.getCurrPageRank())));
 			context.getCounter(Counter.CONVERGENCE).increment(change);
+			
+			//keep track of the lowest two nodes in this graph
+			if (n.nodeId() < second_lowest_node) {
+				if (n.nodeId() < lowest_node) {
+					second_lowest_node = lowest_node;
+					lowest_node = n.nodeId();
+				} else {
+					second_lowest_node = n.nodeId();
+				}
+			}
 			
 			outKey.set(String.valueOf(n.nodeId()));
 			outValue.set(n.toString());
 			context.write(outKey, outValue);
 		}
+		
+		//actually set the report
+		report.put(block_id, 
+			new Pair<Node,Node>(
+				graph.getNode(lowest_node), 
+				graph.getNode(second_lowest_node)));
 	}
 }

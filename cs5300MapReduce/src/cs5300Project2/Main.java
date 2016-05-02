@@ -1,5 +1,8 @@
 package cs5300Project2;
 
+import java.io.File;
+import java.io.PrintWriter;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -11,6 +14,8 @@ import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class Main {
+	
+	private static double ACCEPTABLE_CONVERGENCE = 0.001;
 	
 	private static final String usage = "USAGE FOR: Blocked PageRank | MapReduce\n"
 		+ "\nto preprocess data:"
@@ -29,24 +34,30 @@ public class Main {
 			+ "\n\thelp";
 	
 	private static final String help = "HELP FOR: Blocked PageRank | MapReduce\n"
-		+ "\npre usage: pre edge_filepath block_filepath output_directory "
-			+ "\n\tproduces the initial input to the MapReduce algorithm "
-			+ "\n\tusing the given edge file and block file, and outputs "
+		+ "\npre usage: pre edge_filepath block_filepath output_directory"
+			+ "\n\tproduces the initial input to the MapReduce algorithm"
+			+ "\n\tusing the given edge file and block file, and outputs"
 			+ "\n\tthe result to output_directory/input.txt"
 			
-		+ "\nrun usage: run input_filename output_directory num_runs "
-			+ "\n\truns MapReduce num_runs times using input_filename for "
-			+ "\n\tthe input for the first iteration, and stores intermediate "
-			+ "\n\tdata in output_directory; note that the input file must not "
-			+ "\n\tbe in output_directory, as output_directory is cleared "
+		+ "\nconverge usage: converge input_filename output_directory"
+			+ "\n\truns MapReduce (using input_file for the input for the first "
+			+ "\n\titeration, and stores intermediate data in output_directory) "
+			+ "\n\tuntil it converges to a value of less"
+			+ "\n\tthan " + ACCEPTABLE_CONVERGENCE + "; note that the input file "
+			+ "\n\tmust not be in output_directory, as output_directory is cleared"
 			+ "\n\tbefore each run"
 			
+		+ "\nrun usage: run input_filename output_directory num_runs"
+			+ "\n\truns MapReduce (using input_filename for"
+			+ "\n\tthe input for the first iteration, and stores intermediate"
+			+ "\n\tdata in output_directory) num_runs times; note that the input "
+			+ "\n\tfile must not be in output_directory, as output_directory "
+			+ "\n\tis cleared before each run"
+			
 		+ "\nstep usage: step output_directory [num_steps]"
-			+ "\n\tsearches output_directory for the most recent output, and "
-			+ "\n\truns one (or num_steps if provided) iterations using this "
+			+ "\n\tsearches output_directory for the most recent output, and"
+			+ "\n\truns one (or num_steps if provided) iterations using this"
 			+ "\n\tmost recent output as input";
-	
-	private static double ACCEPTABLE_CONVERGENCE = 0.001;
 	
 	public static void main (String... elephants) {
 		try {
@@ -59,6 +70,7 @@ public class Main {
 				break;
 			case "converge":
 				converge(elephants[1], elephants[2]);
+				break;
 			case "step":
 				if (elephants.length > 2) {
 					step(elephants[1], elephants[2]);
@@ -108,6 +120,8 @@ public class Main {
 			input = output;
 			iteration++;
 		}
+		System.out.println("reached convergence " + convergence + " after " 
+			+ iteration + " iteration(s)");
 	}
 	
 	public static void run (String inputFilename, String outputDirectory, String numRuns) throws Exception {
@@ -122,13 +136,17 @@ public class Main {
 		int NUM_RUNS = Integer.parseInt(numRuns);
 		
 		//run the actual mapreduce job
+		double convergence = Double.POSITIVE_INFINITY;
 		for (int i = 0; i < NUM_RUNS; i++) {
 			Path output = new Path(outputDir, String.valueOf(i));
 			
-			runPageRank(input, output);
+			convergence = runPageRank(input, output);
 			
 			input = output;
 		}
+
+		System.out.println("reached convergence " + convergence + " after " 
+			+ NUM_RUNS + " iteration(s)");
 	}
 	
 	public static void step (String outputDirectory, String numSteps) throws Exception {
@@ -158,14 +176,16 @@ public class Main {
 		} else {
 			int iterationNumber = i;
 			Path outputFile;
+			double convergence = Double.POSITIVE_INFINITY;
 			for (int j = 0; j < NUM_STEPS; j++) {
 				iterationNumber++;
 				outputFile = new Path(outputDirectory + "/" + iterationNumber);
-				runPageRank(inputFile, outputFile);
+				convergence = runPageRank(inputFile, outputFile);
 				inputFile = outputFile;
 			}
-			System.out.println("ran `step' " + NUM_STEPS + " time(s) with input " + i 
-				+ " and output " + iterationNumber);
+			System.out.println("reached convergence " + convergence + " after " 
+				+ NUM_STEPS + " more iteration(s) (total iterations: " 
+				+ (iterationNumber + 1));
 		}
 	}
 	
@@ -191,22 +211,24 @@ public class Main {
 		
 		long scaledConvergence = job.getCounters().findCounter(BlockedReducer.Counter.CONVERGENCE).getValue();
 		long numNodes = job.getCounters().findCounter(BlockedReducer.Counter.NUM_NODES).getValue();
+		
 		double convergence = 
 			((double) scaledConvergence) / 
 			((double) BlockedReducer.SCALING_FACTOR) / 
 			((double) numNodes);
-
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
-		System.out.println("-----> CONVERGENCE IS " + convergence);
 		
+		PrintWriter pw = new PrintWriter(new File(jobOutput.getParent().toUri() + "/stats.txt"));
+		pw.println("\n\n\n---------- ITERATION ----------\n");
+		pw.println("reached convergence " + convergence);
+		pw.println("\nBLOCK REPORT:\n");
+		for (Integer blockId : BlockedReducer.report.keySet()) {
+			Node lowest = BlockedReducer.report.get(blockId).left();
+			Node second = BlockedReducer.report.get(blockId).right();
+			pw.println("block " + blockId);
+			pw.println("\tnode " + lowest.nodeId() + ": " + lowest.getCurrPageRank());
+			pw.println("\tnode " + second.nodeId() + ": " + second.getCurrPageRank());
+		}
+		pw.close();
 		return convergence;
 	}
 

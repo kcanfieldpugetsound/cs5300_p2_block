@@ -85,7 +85,7 @@ public class InputFileCreator {
 			//ignore a large subset of the edges, in accordance
 			//with project specifications
 			double filter = Double.parseDouble(split[2]);
-			if (filter > lowerBound && filter < upperBound) {
+			if (filter >= lowerBound && filter <= upperBound) {
 				continue;
 			}
 			

@@ -18,6 +18,7 @@ public class BlockedMapper extends Mapper<Text, Text, LongWritable, Text> {
 		//node information:
 		//  b_id,n_id,to_bid_1:to_nid_1;to_bid_2:to_nid_2,prevPR,currPR
 		
+		if (ivalue.toString().trim().length() == 0) return;
 		Node n = new Node(ivalue.toString());
 		
 		//write boundary conditions
