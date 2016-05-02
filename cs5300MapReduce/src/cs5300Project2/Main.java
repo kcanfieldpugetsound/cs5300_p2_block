@@ -107,9 +107,10 @@ public class Main {
 	
 	public static void converge (String inputFilename, String outputDirectory) throws Exception {
 		//perform some Hadoop configuration
-		Configuration config = new Configuration();
-		Path outputDir = new Path(outputDirectory);
-		outputDir.getFileSystem(config).delete(outputDir, true);
+//		Configuration config = new Configuration();
+//		Path outputDir = new Path(outputDirectory);
+//		outputDir.getFileSystem(config).delete(outputDir, true);
+//		outputDir.getFileSystem(config).mkdirs(outputDir);
 		
 		//erase stats file
 		PrintWriter writer = new PrintWriter(new File(outputDirectory + "/stats.txt"));
@@ -203,7 +204,10 @@ public class Main {
 	}
 	
 	private static double runPageRank(Path input, Path jobOutput) throws Exception {
+		//clear this output folder if it exists
 		Configuration config = new Configuration();
+		jobOutput.getFileSystem(config).delete(jobOutput, true);
+		
 		Job job = Job.getInstance(config, "BlockedPageRank");
 		job.setJarByClass(Main.class);
 		job.setMapperClass(BlockedMapper.class);
