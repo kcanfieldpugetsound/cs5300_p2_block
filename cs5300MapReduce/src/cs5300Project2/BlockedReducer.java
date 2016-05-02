@@ -16,6 +16,13 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 	Text outKey = new Text();
 	Text outValue = new Text();
 	
+	public static long SCALING_FACTOR = 1000000;
+	
+	public static enum Counter {
+		CONVERGENCE,
+		NUM_NODES
+	}
+	
 	public void reduce(LongWritable _key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 		/**
 		 * Local graph comprised of nodes of this block
@@ -91,8 +98,14 @@ public class BlockedReducer extends Reducer<LongWritable, Text, Text, Text> {
 			}
 		}
 		
-		//emit the results LOL
+		//emit the results and calculate counter woot
 		for (Node n : graph) {
+			context.getCounter(Counter.NUM_NODES).increment(1);
+			
+			long change = SCALING_FACTOR * (long)
+				(Math.abs(n.getCurrPageRank() - n.getPrevPageRank()));
+			context.getCounter(Counter.CONVERGENCE).increment(change);
+			
 			outKey.set(String.valueOf(n.nodeId()));
 			outValue.set(n.toString());
 			context.write(outKey, outValue);

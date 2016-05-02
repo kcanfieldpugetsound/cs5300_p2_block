@@ -16,7 +16,10 @@ public class Main {
 		+ "\nto preprocess data:"
 			+ "\n\tpre edge_filepath block_filepath output_directory"
 		
-		+ "\nto run program:"
+		+ "\nto run program until it converges:"
+			+ "\n\tconverge input_filename output_directory"
+		
+		+ "\nto run program n times:"
 			+ "\n\trun input_filename output_directory num_runs"
 		
 		+ "\nto run another iteration (once already started):"
@@ -43,6 +46,8 @@ public class Main {
 			+ "\n\truns one (or num_steps if provided) iterations using this "
 			+ "\n\tmost recent output as input";
 	
+	private static double ACCEPTABLE_CONVERGENCE = 0.001;
+	
 	public static void main (String... elephants) {
 		try {
 			switch (elephants[0]) {
@@ -52,6 +57,8 @@ public class Main {
 			case "run":
 				run(elephants[1], elephants[2], elephants[3]);
 				break;
+			case "converge":
+				converge(elephants[1], elephants[2]);
 			case "step":
 				if (elephants.length > 2) {
 					step(elephants[1], elephants[2]);
@@ -81,6 +88,26 @@ public class Main {
 		InputFileCreator ifc = new InputFileCreator(edgesFile, blocksFile);
 		ifc.createInputFile(outputDirectory + "/input.txt");
 		return;
+	}
+	
+	public static void converge (String inputFilename, String outputDirectory) throws Exception {
+		//perform some Hadoop configuration
+		Configuration config = new Configuration();
+		Path outputDir = new Path(outputDirectory);
+		outputDir.getFileSystem(config).delete(outputDir, true);
+		outputDir.getFileSystem(config).mkdirs(outputDir);
+		
+		Path input = new Path(inputFilename);
+		Path output;
+		
+		double convergence = Double.POSITIVE_INFINITY;	
+		int iteration = 0;
+		while (convergence > ACCEPTABLE_CONVERGENCE) {
+			output = new Path(outputDirectory + "/" + iteration);
+			convergence = runPageRank(input, output);
+			input = output;
+			iteration++;
+		}
 	}
 	
 	public static void run (String inputFilename, String outputDirectory, String numRuns) throws Exception {
@@ -162,7 +189,25 @@ public class Main {
 			throw new Exception("The job has failed to complete");
 		}
 		
-		return Double.POSITIVE_INFINITY;
+		long scaledConvergence = job.getCounters().findCounter(BlockedReducer.Counter.CONVERGENCE).getValue();
+		long numNodes = job.getCounters().findCounter(BlockedReducer.Counter.NUM_NODES).getValue();
+		double convergence = 
+			((double) scaledConvergence) / 
+			((double) BlockedReducer.SCALING_FACTOR) / 
+			((double) numNodes);
+
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		System.out.println("-----> CONVERGENCE IS " + convergence);
+		
+		return convergence;
 	}
 
 }
