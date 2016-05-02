@@ -1,6 +1,7 @@
 package cs5300Project2;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.PrintWriter;
 
 import org.apache.hadoop.conf.Configuration;
@@ -21,16 +22,16 @@ public class Main {
 		+ "\nto preprocess data:"
 			+ "\n\tpre edge_filepath block_filepath output_directory"
 		
-		+ "\nto run program until it converges:"
+		+ "\n\nto run program until it converges:"
 			+ "\n\tconverge input_filename output_directory"
 		
-		+ "\nto run program n times:"
+		+ "\n\nto run program n times:"
 			+ "\n\trun input_filename output_directory num_runs"
 		
-		+ "\nto run another iteration (once already started):"
-			+ "\n\tstep output_directory"
+		+ "\n\nto run another iteration (once already started):"
+			+ "\n\tstep output_directory [num_steps]"
 		
-		+ "\nfor help:"
+		+ "\n\nfor help:"
 			+ "\n\thelp";
 	
 	private static final String help = "HELP FOR: Blocked PageRank | MapReduce\n"
@@ -39,22 +40,24 @@ public class Main {
 			+ "\n\tusing the given edge file and block file, and outputs"
 			+ "\n\tthe result to output_directory/input.txt"
 			
-		+ "\nconverge usage: converge input_filename output_directory"
+		+ "\n\nconverge usage: converge input_filename output_directory"
 			+ "\n\truns MapReduce (using input_file for the input for the first "
 			+ "\n\titeration, and stores intermediate data in output_directory) "
 			+ "\n\tuntil it converges to a value of less"
 			+ "\n\tthan " + ACCEPTABLE_CONVERGENCE + "; note that the input file "
 			+ "\n\tmust not be in output_directory, as output_directory is cleared"
-			+ "\n\tbefore each run"
+			+ "\n\tbefore each run; statistics available in"
+			+ "\n\toutput_directory/stats.txt"
 			
-		+ "\nrun usage: run input_filename output_directory num_runs"
+		+ "\n\nrun usage: run input_filename output_directory num_runs"
 			+ "\n\truns MapReduce (using input_filename for"
 			+ "\n\tthe input for the first iteration, and stores intermediate"
 			+ "\n\tdata in output_directory) num_runs times; note that the input "
 			+ "\n\tfile must not be in output_directory, as output_directory "
-			+ "\n\tis cleared before each run"
+			+ "\n\tis cleared before each run; statistics available in"
+			+ "\n\toutput_directory/stats.txt"
 			
-		+ "\nstep usage: step output_directory [num_steps]"
+		+ "\n\nstep usage: step output_directory [num_steps]"
 			+ "\n\tsearches output_directory for the most recent output, and"
 			+ "\n\truns one (or num_steps if provided) iterations using this"
 			+ "\n\tmost recent output as input";
@@ -109,6 +112,11 @@ public class Main {
 		outputDir.getFileSystem(config).delete(outputDir, true);
 		outputDir.getFileSystem(config).mkdirs(outputDir);
 		
+		//erase stats file
+		PrintWriter writer = new PrintWriter(new File(outputDirectory + "/stats.txt"));
+		writer.print("");
+		writer.close();
+		
 		Path input = new Path(inputFilename);
 		Path output;
 		
@@ -130,6 +138,12 @@ public class Main {
 		Path outputDir = new Path(outputDirectory);
 		outputDir.getFileSystem(config).delete(outputDir, true);
 		outputDir.getFileSystem(config).mkdirs(outputDir);
+
+		//erase stats file
+		PrintWriter writer = new PrintWriter(new File(outputDirectory + "/stats.txt"));
+		writer.print("");
+		writer.close();
+		
 		
 		Path input = new Path(inputFilename);
 		
@@ -185,7 +199,7 @@ public class Main {
 			}
 			System.out.println("reached convergence " + convergence + " after " 
 				+ NUM_STEPS + " more iteration(s) (total iterations: " 
-				+ (iterationNumber + 1));
+				+ (iterationNumber + 1) + ")");
 		}
 	}
 	
@@ -217,18 +231,18 @@ public class Main {
 			((double) BlockedReducer.SCALING_FACTOR) / 
 			((double) numNodes);
 		
-		PrintWriter pw = new PrintWriter(new File(jobOutput.getParent().toUri() + "/stats.txt"));
-		pw.println("\n\n\n---------- ITERATION ----------\n");
-		pw.println("reached convergence " + convergence);
-		pw.println("\nBLOCK REPORT:\n");
+		FileWriter fw = new FileWriter(new File(jobOutput.getParent().toUri() + "/stats.txt"), true);
+		fw.write("\n\n\n---------- ITERATION ----------\n\n");
+		fw.write("reached convergence " + convergence + "\n");
+		fw.write("\nBLOCK REPORT:\n\n");
 		for (Integer blockId : BlockedReducer.report.keySet()) {
 			Node lowest = BlockedReducer.report.get(blockId).left();
 			Node second = BlockedReducer.report.get(blockId).right();
-			pw.println("block " + blockId);
-			pw.println("\tnode " + lowest.nodeId() + ": " + lowest.getCurrPageRank());
-			pw.println("\tnode " + second.nodeId() + ": " + second.getCurrPageRank());
+			fw.write("block " + blockId + "\n");
+			fw.write("\tnode " + lowest.nodeId() + ": " + lowest.getCurrPageRank() + "\n");
+			fw.write("\tnode " + second.nodeId() + ": " + second.getCurrPageRank() + "\n");
 		}
-		pw.close();
+		fw.close();
 		return convergence;
 	}
 
