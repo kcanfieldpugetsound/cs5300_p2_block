@@ -110,7 +110,6 @@ public class Main {
 		Configuration config = new Configuration();
 		Path outputDir = new Path(outputDirectory);
 		outputDir.getFileSystem(config).delete(outputDir, true);
-		outputDir.getFileSystem(config).mkdirs(outputDir);
 		
 		//erase stats file
 		PrintWriter writer = new PrintWriter(new File(outputDirectory + "/stats.txt"));
