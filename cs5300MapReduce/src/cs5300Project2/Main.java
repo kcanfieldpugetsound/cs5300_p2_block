@@ -134,10 +134,10 @@ public class Main {
 	
 	public static void run (String inputFilename, String outputDirectory, String numRuns) throws Exception {
 		//perform some Hadoop configuration
-		Configuration config = new Configuration();
+//		Configuration config = new Configuration();
 		Path outputDir = new Path(outputDirectory);
-		outputDir.getFileSystem(config).delete(outputDir, true);
-		outputDir.getFileSystem(config).mkdirs(outputDir);
+//		outputDir.getFileSystem(config).delete(outputDir, true);
+//		outputDir.getFileSystem(config).mkdirs(outputDir);
 
 		//erase stats file
 		PrintWriter writer = new PrintWriter(new File(outputDirectory + "/stats.txt"));
